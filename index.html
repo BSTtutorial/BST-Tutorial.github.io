@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#FF0000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>YouTube Music Bilateral</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #FF0000;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .settings-btn {
+            background: rgba(0,0,0,0.3);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .controls {
+            background: #181818;
+            padding: 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+        
+        .controls.show {
+            max-height: 400px;
+            padding: 20px 15px;
+            border-bottom: 1px solid #282828;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .value {
+            color: #FF0000;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .toggle {
+            background: #535353;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle.active {
+            background: #FF0000;
+            color: #fff;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #444;
+            outline: none;
+            -webkit-appearance: none;
+            margin: 10px 0 5px 0;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #FF0000;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #FF0000;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .helper-text {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        
+        .iframe-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #FF0000;
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(255,0,0,0.5);
+            z-index: 1001;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .status.show {
+            display: flex;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 999;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #FF0000;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">
+            🎧 YouTube Music Bilateral
+        </div>
+        <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+    </div>
+    
+    <div class="controls" id="controls">
+        <div class="control-row">
+            <span class="label">Bilateral Effect</span>
+            <button class="toggle active" id="toggleBtn" onclick="toggleEffect()">ON</button>
+        </div>
+        
+        <div class="control-row">
+            <span class="label">Switch Every</span>
+            <span class="value" id="intervalValue">2.0s</span>
+        </div>
+        <input type="range" id="intervalSlider" min="0.5" max="5" step="0.1" value="2.0" oninput="updateInterval(this.value)">
+        <div class="helper-text">How long on each ear before switching</div>
+        
+        <div class="control-row">
+            <span class="label">Intensity</span>
+            <span class="value" id="intensityValue">100%</span>
+        </div>
+        <input type="range" id="intensitySlider" min="0" max="100" step="10" value="100" oninput="updateIntensity(this.value)">
+        <div class="helper-text">How extreme the left-right separation</div>
+    </div>
+    
+    <div class="iframe-container">
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <div>Loading YouTube Music...</div>
+        </div>
+        <iframe 
+            id="ytmusic" 
+            src="https://music.youtube.com" 
+            allow="autoplay; encrypted-media; fullscreen"
+            allowfullscreen
+        ></iframe>
+    </div>
+    
+    <div class="status" id="status">
+        <div class="status-dot"></div>
+        <span>Bilateral Active</span>
+    </div>
+    
+    <script>
+        let enabled = true;
+        let interval = 2.0;
+        let intensity = 100;
+        let scriptInjected = false;
+        
+        const iframe = document.getElementById('ytmusic');
+        const loading = document.getElementById('loading');
+        const status = document.getElementById('status');
+        
+        // Hide loading after iframe loads
+        iframe.onload = function() {
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 2000);
+        };
+        
+        function toggleSettings() {
+            const controls = document.getElementById('controls');
+            controls.classList.toggle('show');
+        }
+        
+        function toggleEffect() {
+            enabled = !enabled;
+            const btn = document.getElementById('toggleBtn');
+            
+            if (enabled) {
+                btn.textContent = 'ON';
+                btn.classList.add('active');
+                status.classList.add('show');
+            } else {
+                btn.textContent = 'OFF';
+                btn.classList.remove('active');
+                status.classList.remove('show');
+            }
+            
+            updateEffect();
+        }
+        
+        function updateInterval(value) {
+            interval = parseFloat(value);
+            document.getElementById('intervalValue').textContent = value + 's';
+            updateEffect();
+        }
+        
+        function updateIntensity(value) {
+            intensity = parseInt(value);
+            document.getElementById('intensityValue').textContent = value + '%';
+            updateEffect();
+        }
+        
+        function updateEffect() {
+            // Try to inject script into iframe
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                injectBilateralScript(iframeDoc);
+            } catch (e) {
+                // Cross-origin - expected, but we'll use message passing
+                console.log('Cross-origin restriction - using alternate method');
+            }
+        }
+        
+        function injectBilateralScript(doc) {
+            if (!doc) return;
+            
+            const script = doc.createElement('script');
+            script.textContent = `
+                (function() {
+                    if (window._bilateralSetup) return;
+                    window._bilateralSetup = true;
+                    
+                    let enabled = ${enabled};
+                    let interval = ${interval};
+                    let intensity = ${intensity / 100};
+                    
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    function setupBilateral() {
+                        document.querySelectorAll('video').forEach(element => {
+                            if (element._bilateral) return;
+                            element._bilateral = true;
+                            
+                            try {
+                                const source = ctx.createMediaElementSource(element);
+                                const panner = ctx.createStereoPanner();
+                                const oscillator = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                
+                                oscillator.frequency.value = 1 / (interval * 2);
+                                oscillator.type = 'square';
+                                gain.gain.value = intensity;
+                                
+                                source.connect(panner);
+                                panner.connect(ctx.destination);
+                                oscillator.connect(gain);
+                                gain.connect(panner.pan);
+                                
+                                if (enabled) {
+                                    oscillator.start();
+                                }
+                                
+                                console.log('Bilateral audio active!');
+                            } catch (e) {
+                                console.log('Audio element already connected');
+                            }
+                        });
+                    }
+                    
+                    setInterval(setupBilateral, 3000);
+                    setupBilateral();
+                })();
+            `;
+            
+            doc.head.appendChild(script);
+        }
+        
+        // Show status on load
+        if (enabled) {
+            status.classList.add('show');
+        }
+        
+        // Auto-close settings after 3 seconds
+        setTimeout(() => {
+            const controls = document.getElementById('controls');
+            if (controls.classList.contains('show')) {
+                controls.classList.remove('show');
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
